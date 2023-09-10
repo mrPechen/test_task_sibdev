@@ -1,0 +1,71 @@
+version: '3'
+
+services:
+  db:
+    container_name: sibdev_postgres
+    image: postgres:latest
+    env_file:
+      - sibdev_project/.env
+    restart: always
+    ports:
+      - "5432:5432"
+    networks:
+      - sibdev
+
+
+  rabbitmq:
+    container_name: sibdev_rabbitmq
+    image: rabbitmq:latest
+    env_file:
+      - sibdev_project/.env
+    restart: always
+    ports:
+      - "5672:5672"
+    healthcheck:
+      test: [ "CMD", "rabbitmqctl", "status" ]
+      interval: 5s
+      timeout: 10s
+      retries: 200
+    networks:
+      - sibdev
+
+  celery_worker:
+    container_name: sibdev_celery
+    build:
+      context: .
+    image: celery:latest
+    env_file:
+      - sibdev_project/.env
+    command: celery -A sibdev_project.api.services.tasks worker --loglevel=INFO -B
+    restart: always
+    networks:
+      - sibdev
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      drf:
+        condition: service_started
+
+  drf:
+    container_name: sibdev_drf
+    build:
+      context: .
+    command: >
+             sh -c "
+             python django_app.py migrate &&
+             python django_app.py makemigrations &&
+             python django_app.py runserver 0.0.0.0:8000 --noreload"
+    ports:
+      - "8000:8000"
+    env_file:
+      - sibdev_project/.env
+    networks:
+      - sibdev
+    restart: always
+    depends_on:
+      - db
+
+
+networks:
+  sibdev:
+    driver: bridge
