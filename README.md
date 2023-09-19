@@ -1,5 +1,5 @@
-# Test task for Sibdev.
-Тестовое задание для Sibdev.
+# Tracking the dynamics of currencies.
+Описание проекта ниже в пункте "ТЗ".
 
 Запуск:
 - Клонировать репозиторий.
